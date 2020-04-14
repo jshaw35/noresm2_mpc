@@ -38,8 +38,9 @@ compsets=("NF2000climo" "N1850OCBDRDDMS" "NFAMIPNUDGEPTAEROCLB")
 resolutions=("f19_tn14" "f10_f10_mg37", 'f19_g16')
 machines=('fram')
 projects=('nn9600k' 'nn9252k')
-start=('2000-01-01' '2009-06-01') # start date
+start=('2000-01-01' '2009-03-01') # start date
 nudge=('ERA_f19_g16' 'ERA_f19_tn14') # repository where data for nudging is stored
+
 ########################
 # OPTIONAL MODIFICATIONS
 ########################
@@ -47,14 +48,15 @@ nudge=('ERA_f19_g16' 'ERA_f19_tn14') # repository where data for nudging is stor
 nudge_winds=true
 remove_entrained_ice=false
 record_mar_input=false
-run_type=paramtest # fouryear, devel, paramtest
+run_type=devel # fouryear, devel, paramtest
 run_period=sat_comp # standard, sat_comp
+
 ## Build the case
 
 # Where ./create_case is called from: (do I need a tilde here for simplicity?)
 ModelRoot=/cluster/home/jonahks/p/jonahks/models/${models[0]}/cime/scripts
 
-# Where the case it setup, and user_nl files are stored
+# Where the case is setup, and user_nl files are stored
 CASEROOT=/cluster/home/jonahks/p/jonahks/cases
 
 # Where FORTRAN files contains microphysics modifications are stored
@@ -65,7 +67,7 @@ ModSource=/cluster/home/jonahks/git_repos/mpcSourceMods
 COMPSET=${compsets[0]}
 RES=${resolutions[0]}
 MACH=${machines[0]}
-PROJECT=${projects[1]}
+PROJECT=${projects[0]}
 MISC=--run-unsupported
 
 if [ $run_period = sat_comp ] ; then
@@ -84,7 +86,6 @@ echo ${CASEROOT}/${CASENAME} ${COMPSET} ${RES} ${MACH} ${PROJECT} $MISC
 #############
 
 cd ${ModelRoot} # Move to appropriate directory
-#pwd
 
 # Create env_*.xml files
 ./create_newcase --case ${CASEROOT}/${CASENAME} \
@@ -101,24 +102,25 @@ if [ $run_type = devel ] ; then
     # ./xmlchange STOP_OPTION='nmonth',STOP_N='1' --file env_run.xml # standard is 5 days
     ./xmlchange JOB_WALLCLOCK_TIME=00:29:59 --file env_batch.xml
     ./xmlchange NTASKS=-4,NTASKS_ESP=1 --file env_mach_pes.xml
+    # shitty hack to allow devel queueing:
+    sed -i 's/<arg flag="-p" name="$JOB_QUEUE"/<arg flag="--qos" name="$JOB_QUEUE"/' env_batch.xml
     ./xmlchange JOB_QUEUE='devel' --file env_batch.xml
 elif [ $run_type = fouryear ] ; then 
-    ./xmlchange STOP_OPTION='nmonth',STOP_N='48' --file env_run.xml
+    ./xmlchange STOP_OPTION='nmonth',STOP_N='51' --file env_run.xml # fouryear is a misnomer, using 3m adjustment period
     ./xmlchange JOB_WALLCLOCK_TIME=11:59:59 --file env_batch.xml --subgroup case.run
     ./xmlchange NTASKS=-16,NTASKS_ESP=1 --file env_mach_pes.xml # arbitrary
     ./xmlchange --append CAM_CONFIG_OPTS='-cosp' --file env_build.xml
 elif [ $run_type = paramtest ] ; then
     ./xmlchange STOP_OPTION='nmonth',STOP_N='15' --file env_run.xml
     ./xmlchange JOB_WALLCLOCK_TIME=11:59:59 --file env_batch.xml --subgroup case.run
-    ./xmlchange NTASKS=-16,NTASKS_ESP=1 --file env_mach_pes.xml # arbitrary
+    ./xmlchange NTASKS=-4,NTASKS_ESP=1 --file env_mach_pes.xml # arbitrary
 else
     ./xmlchange STOP_OPTION='nmonth',STOP_N='15' --file env_run.xml
     ./xmlchange JOB_WALLCLOCK_TIME=11:59:59 --file env_batch.xml --subgroup case.run
-    ./xmlchange NTASKS=-16,NTASKS_ESP=1 --file env_mach_pes.xml # arbitrary
+    ./xmlchange NTASKS=-4,NTASKS_ESP=1 --file env_mach_pes.xml # arbitrary
 fi
 
 ./xmlchange RUN_STARTDATE=$startdate --file env_run.xml
-# ./xmlchange --append CAM_CONFIG_OPTS='-cosp' --file env_build.xml
 
 #./xmlchange --file=env_run.xml RESUBMIT=3
 # ./xmlchange --file=env_run.xml REST_OPTION=nyears
@@ -136,14 +138,14 @@ if [ $nudge_winds = true ] ; then
     echo "Making modifications to nudge uv winds. Make sure pt. 2 files are correct."
     ./xmlchange --append CAM_CONFIG_OPTS='--offline_dyn' --file env_build.xml
     ./xmlchange CALENDAR='GREGORIAN' --file env_build.xml 
-    # ./xmlchange RUN_STARTDATE=$startdate --file env_run.xml
     # Not sure if this is necessary
-    cp /cluster/home/jonahks/p/jonahks/models/noresm-dev/components/cam/src/NorESM/fv/metdata.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
+    # cp /cluster/home/jonahks/git_repos/micro_mg_mods/continue_run_dev/metdata.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
 fi
 
-# ./case.setup
-# Sets up case, creating user_nl_* files. 
+# Sets up case, creating user_nl_* files.
 # namelists can be modified here, or after ./case.build
+./case.setup
+
 # SourceMods are made here.
 
 # Move modified WBF process into SourceMods dir:
@@ -153,6 +155,9 @@ cp ${ModSource}/micro_mg2_0.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
 # Move modified INP nucleation process into SourceMods dir:
 cp ${ModSource}/hetfrz_classnuc_oslo.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
 
+# Addings SLF isotherms coordinate needed for micro_mg mods
+cp ${ModSource}/cospsimulator_intr.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
+
 # Now use ponyfyer to set the values within the sourcemod files. Ex:
 mg2_path=/${CASEROOT}/${CASENAME}/SourceMods/src.cam/micro_mg2_0.F90
 inp_path=/${CASEROOT}/${CASENAME}/SourceMods/src.cam/hetfrz_classnuc_oslo.F90
@@ -160,18 +165,15 @@ inp_path=/${CASEROOT}/${CASENAME}/SourceMods/src.cam/hetfrz_classnuc_oslo.F90
 ponyfyer 'wbf_tag = 1.' "wbf_tag = ${wbf}" ${mg2_path}  # wbf modifier
 ponyfyer 'inp_tag = 1.' "inp_tag = ${inp}" ${inp_path} # aerosol conc. modifier
 
-# exit 1
 
-# Set up case, creating user_nl_* files
-./case.setup
+#################
+# user_nl changes
+#################
 
-# Will need to modify the nl files appropriately here to choose output
 # CAM adjustments, I don't entirely understand the syntax here, but all the formatting after the first line is totally preserved:
-# list variables to add to first history file here
-#&aerosol_nl  # Not sure what this is.
-# , 'SLFXCLD_ISOTM', 'SADLIQXCLD_ISOTM', 'SADICEXCLD_ISOTM', 'BERGOXCLD_ISOTM',
-# 'BERGSOXCLD_ISOTM', 'CLD_ISOTM', 'CLDTAU', 'CLD_SLF', 'CLD_ISOTM_SLF',
 
+# Modify user_nl files appropriately here to choose output
+# list variables to add to first history file here
 cat <<TXT2 >> user_nl_cam
 fincl1 = 'BERGO', 'BERGSO', 'MNUCCTO', 'MNUCCRO', 'MNUCCCO', 'MNUCCDOhet', 'MNUCCDO'
          'DSTFREZIMM', 'DSTFREZCNT', 'DSTFREZDEP', 'BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP',
@@ -184,24 +186,36 @@ fincl1 = 'BERGO', 'BERGSO', 'MNUCCTO', 'MNUCCRO', 'MNUCCCO', 'MNUCCDOhet', 'MNUC
          'MNUDEPO', 'NNUCCTO', 'NNUCCCO', 'NNUDEPO', 'NIHOMOO','HOMOO'
 TXT2
 
+# Use COSP only for isotherm coords, requires modded cosp_simulator.F90 file as SourceMods
+if [ $run_type = fouryear ] ; then 
+
+# cosp_amwg needed, I don't think so?
+#  cosp_amwg = .false.
+#  cosp_llidar_sim = .true.
+#  cosp_ncolumns = 10
+#  cosp_nradsteps = 3
+# Only use need COSP functions to save computation time (cosp_active). Add SLF isotherms (slf_isotherms)
+cat <<COSP_SPECS >> user_nl_cam
+&cospsimulator_nl
+ cosp_active = .true.
+&slfsimulator_nl
+ slf_isotherms = .true.
+COSP_SPECS
+
+fi
 # OPTIONAL: Nudge winds (pt. 2)
 # user_nl_cam additions related to nudging. Specify winds, set relax time, set first wind field file, path to all windfield files
-# The f16_g16 resolution only has ERA data from 1999-01-01 to 2003-07-14
 # Setting drydep_method resolves an error that arises when using the NF2000climo compset
 if [ $nudge_winds = true ] ; then # 
 
-# Strings as formatted to give correct startdate and resolution directories (assuming they exist)
+# Strings formatted to give correct startdate and resolution directories (assuming they exist)
+#  drydep_method = 'xactive_atm'
 cat <<TXT3 >> user_nl_cam
 &metdata_nl
  met_nudge_only_uvps = .true.
  met_data_file= "/cluster/shared/noresm/inputdata/noresm-only/inputForNudging/$nudgedir/$startdate.nc"
  met_filenames_list = "/cluster/shared/noresm/inputdata/noresm-only/inputForNudging/$nudgedir/fileList3.txt"
- met_rlx_top = 6
- met_rlx_bot = 6
- met_rlx_bot_top = 6
- met_rlx_bot_bot = 6  
  met_rlx_time = 6
- drydep_method = 'xactive_atm'
 &cam_initfiles_nl
  bnd_topo = "/cluster/shared/noresm/inputdata/noresm-only/inputForNudging/$nudgedir/ERA_bnd_topo.nc"
 TXT3
@@ -210,11 +224,9 @@ fi
 
 if [ $record_mar_input = true ] ; then # Output additional history files with forcing input for MAR (Stefan)
 
-# Does Stefan want instantaneous or average values?? instantaneous is better
 cat <<MAR_CAM >> user_nl_cam
 fincl2 = 'T:I','PS:I','Q:I','U:I','V:I'
 nhtfr(2) = -6
-
 fincl3 = 'SST:I'
 nhtfr(3) = -24
 MAR_CAM
