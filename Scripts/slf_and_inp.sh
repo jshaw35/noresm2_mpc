@@ -48,7 +48,7 @@ nudge=('ERA_f19_g16' 'ERA_f19_tn14') # repository where data for nudging is stor
 nudge_winds=true
 remove_entrained_ice=false
 record_mar_input=false
-run_type=devel # fouryear, devel, paramtest
+run_type=fouryear # fouryear, devel, paramtest
 run_period=sat_comp # standard, sat_comp
 
 ## Build the case
@@ -77,7 +77,6 @@ else
     startdate=${start[0]}
     nudgedir=${nudge[0]}
 fi
-NUMNODES=-16 # How many nodes each component should run on
 
 echo ${CASEROOT}/${CASENAME} ${COMPSET} ${RES} ${MACH} ${PROJECT} $MISC
 
@@ -138,8 +137,6 @@ if [ $nudge_winds = true ] ; then
     echo "Making modifications to nudge uv winds. Make sure pt. 2 files are correct."
     ./xmlchange --append CAM_CONFIG_OPTS='--offline_dyn' --file env_build.xml
     ./xmlchange CALENDAR='GREGORIAN' --file env_build.xml 
-    # Not sure if this is necessary
-    # cp /cluster/home/jonahks/git_repos/micro_mg_mods/continue_run_dev/metdata.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
 fi
 
 # Sets up case, creating user_nl_* files.

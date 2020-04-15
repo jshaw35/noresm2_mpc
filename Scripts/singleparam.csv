@@ -86,3 +86,6 @@ cospcost_wbf_1_inp_1,1.0,1.0,1.0
 metdataoutput_wbf_1_inp_1,1.0,1.0,1.0
 metdatanorlx_wbf_1_inp_1,1.0,1.0,1.0
 fouryearprecheck_wbf_1_inp_1,1.0,1.0,1.0
+cam61satcomp_wbf_1_inp_1,1.0,1.0,1.0
+cam61satcomp_wbf_0.2_inp_0.3,1.0,0.2,0.3
+cam61satcomp_wbf_1_inp_0.05,1.0,1.0,0.05
