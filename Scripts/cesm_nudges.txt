@@ -1,0 +1,41 @@
+&nudging_nl
+ Nudge_Model        =.true.
+ Nudge_Path         ='/cluster/shared/noresm/inputdata/noresm-only/inputForNudging/ERA_f19_tn14/'
+ Nudge_File_Template='%y/ERAI_ne30np4_L30.cam2.i.%y-%m-%d-%s.nc'
+ Nudge_Force_Opt    = 0 # this is default
+ Nudge_TimeScale_Opt= 0 # default
+ Nudge_Times_Per_Day= 4 # this is same as my NorESM2
+
+ Nudge_Uprof  =1 # Spatially Uniform Nudging
+ Nudge_Ucoef  =1.00  # [0.,1.] fraction of nudging tendency applied.
+ Nudge_Vprof  =1
+ Nudge_Vcoef  =1.00
+ Nudge_PSprof =1
+ Nudge_PScoef =1.00
+
+
+ Nudge_Tprof  =0 # turn off?
+ Nudge_Tcoef  =0.00
+ Nudge_Qprof  =0 # should be off?
+ Nudge_Qcoef  =0.00
+ Nudge_Hwin_lat0    =0.0 # LAT0 center of Horizontal Window in degrees [-90.,90.].
+ Nudge_Hwin_lon0    =180. # LON0 center of Horizontal Window in degrees [0.,360.].
+
+ Model_Times_Per_Day= 48 # None?
+ Nudge_Beg_Year =1979
+ Nudge_Beg_Month=1
+ Nudge_Beg_Day  =2
+ Nudge_End_Year =1979
+ Nudge_End_Month=1
+ Nudge_End_Day  =5
+
+ Nudge_Hwin_latWidth=9999.  # Width of LAT Window in degrees.
+ Nudge_Hwin_latDelta=1. # Width of transition which controls the steepness of window transition in latitude.
+ Nudge_Hwin_lonWidth=9999.  # Width of LON Window in degrees.
+ Nudge_Hwin_lonDelta=1. # Width of transition which controls the steepness of window transition in longitude
+ Nudge_Hwin_Invert  =.false.
+ Nudge_Vwin_Hindex  =31. # HIGH Level Index for Verical Window specified in terms of model level indices. (e.g. For a 30 level model, Nudge_Vwin_Hindex ~ 30 )
+ Nudge_Vwin_Hdelta  =0.1
+ Nudge_Vwin_Lindex  =0.
+ Nudge_Vwin_Ldelta  =0.1
+ Nudge_Vwin_Invert  =.false.
