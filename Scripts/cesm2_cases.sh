@@ -35,7 +35,7 @@ inp=${args[2]}          # inp multiplier
 #####################
 
 models=("noresm-dev" "cesm" "noresm-dev-10072019")
-compsets=("NF2000climo" "N1850OCBDRDDMS" "F2000climo")
+compsets=("NF2000climo" "2000_CAM60_CLM50%SP_CICE%PRES_DOCN%DOM_MOSART_SGLC_SWAV" "F2000climo")
 resolutions=("f19_tn14" "f10_f10_mg37" "f19_g16" "f19_f19_mg17")
 machines=('fram')
 projects=('nn9600k' 'nn9252k')
@@ -47,7 +47,7 @@ nudge=('ERA_f19_g16' 'ERA_f19_tn14') # repository where data for nudging is stor
 ########################
 
 nudge_winds=true
-# remove_entrained_ice=false
+remove_entrained_ice=false
 record_mar_input=false
 run_type=devel # fouryear, devel, paramtest
 run_period=sat_comp # standard, sat_comp
@@ -61,11 +61,10 @@ ModelRoot=/cluster/home/jonahks/p/jonahks/models/${models[1]}/cime/scripts # sel
 CASEROOT=/cluster/home/jonahks/p/jonahks/cases
 
 # Where FORTRAN files contains microphysics modifications are stored
-#ModSource=/cluster/home/jonahks/git_repos/noresm2_mpc/SourceMods
-ModSource=/cluster/home/jonahks/git_repos/mpcSourceMods
+ModSource=/cluster/home/jonahks/git_repos/micro_mg_mods/CESM_slfmods
 
 # Set indices to select from arrays here
-COMPSET=${compsets[2]}
+COMPSET=${compsets[1]}
 RES=${resolutions[3]}
 MACH=${machines[0]}
 PROJECT=${projects[0]}
@@ -126,7 +125,6 @@ fi
 # ./xmlchange --file=env_run.xml REST_OPTION=nyears
 #./xmlchange --file=env_run.xml REST_N=5
 
-exit 1
 
 # OPTIONAL: Remove entrainment of ice above -35C.
 if [ $remove_entrained_ice = true ] ; then
@@ -134,11 +132,11 @@ if [ $remove_entrained_ice = true ] ; then
     cp ${ModSource}/clubb_intr.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
 fi
 
-# OPTIONAL: Nudge winds (pt. 1)
+# OPTIONAL: Nudge winds (pt. 1), Not sure about this is CESM2
 if [ $nudge_winds = true ] ; then
     echo "Making modifications to nudge uv winds. Make sure pt. 2 files are correct."
     ./xmlchange --append CAM_CONFIG_OPTS='--offline_dyn' --file env_build.xml
-    ./xmlchange CALENDAR='GREGORIAN' --file env_build.xml 
+    ./xmlchange CALENDAR='GREGORIAN' --file env_build.xml  # NO_LEAP needed if ice is not SGLC
 fi
 
 # Sets up case, creating user_nl_* files.
@@ -152,17 +150,24 @@ cp ${ModSource}/micro_mg_cam.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
 cp ${ModSource}/micro_mg2_0.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
 
 # Move modified INP nucleation process into SourceMods dir:
-cp ${ModSource}/hetfrz_classnuc_oslo.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
-
-# Addings SLF isotherms coordinate needed for micro_mg mods
-cp ${ModSource}/cospsimulator_intr.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
+cp ${ModSource}/hetfrz_classnuc_cam.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
 
 # Now use ponyfyer to set the values within the sourcemod files. Ex:
 mg2_path=/${CASEROOT}/${CASENAME}/SourceMods/src.cam/micro_mg2_0.F90
-inp_path=/${CASEROOT}/${CASENAME}/SourceMods/src.cam/hetfrz_classnuc_oslo.F90
+inp_path=/${CASEROOT}/${CASENAME}/SourceMods/src.cam/hetfrz_classnuc_cam.F90
 
 ponyfyer 'wbf_tag = 1.' "wbf_tag = ${wbf}" ${mg2_path}  # wbf modifier
 ponyfyer 'inp_tag = 1.' "inp_tag = ${inp}" ${inp_path} # aerosol conc. modifier
+# Use metdata.F90 from NorESM for comparable uvps-only nudging. modrydep.F90 is error-correcting.
+cp ${ModSource}/metdata.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
+cp ${ModSource}/mo_drydep.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
+
+# Addings SLF isotherms coordinate needed for micro_mg mods
+cp ${ModSource}/cospsimulator_intr.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
+cat <<ISOS_ON >> user_nl_cam
+&slfsimulator_nl
+ slf_isotherms = .true.
+ISOS_ON
 
 
 #################
@@ -176,13 +181,13 @@ ponyfyer 'inp_tag = 1.' "inp_tag = ${inp}" ${inp_path} # aerosol conc. modifier
 cat <<TXT2 >> user_nl_cam
 fincl1 = 'BERGO', 'BERGSO', 'MNUCCTO', 'MNUCCRO', 'MNUCCCO', 'MNUCCDOhet', 'MNUCCDO'
          'DSTFREZIMM', 'DSTFREZCNT', 'DSTFREZDEP', 'BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP',
-         'NUMICE10s', 'NUMICE10sDST', 'NUMICE10sBC',
-         'dc_num', 'dst1_num', 'dst3_num', 'bc_c1_num', 'dst_c1_num', 'dst_c3_num',
+         'NUMICE10s',
+         'dst1_num', 'dst3_num', 'bc_c1_num', 'dst_c1_num', 'dst_c3_num',
          'bc_num_scaled', 'dst1_num_scaled', 'dst3_num_scaled' ,
          'DSTNIDEP', 'DSTNICNT', 'DSTNIIMM',
          'BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s', 'NUMIMM10sDST', 'NUMIMM10sBC',
-         'MPDI2V', 'MPDI2W','QISEDTEN', 'NIMIX_HET', 'NIMIX_CNT', 'NIMIX_IMM', 'NIMIX_DEP',
-         'MNUDEPO', 'NNUCCTO', 'NNUCCCO', 'NNUDEPO', 'NIHOMOO','HOMOO'
+         'MPDI2V', 'MPDI2W','QISEDTEN', 'NIMIX_CNT', 'NIMIX_IMM', 'NIMIX_DEP',
+         'HOMOO'
 TXT2
 
 # Use COSP only for isotherm coords, requires modded cosp_simulator.F90 file as SourceMods
@@ -199,13 +204,10 @@ if [ $run_type = fouryear ] ; then
 cat <<COSP_SPECS >> user_nl_cam
 &cospsimulator_nl
  cosp_active = .true.
- cosp_amwg = .false.
+ cosp_amwg = .true.
  cosp_ncolumns = 10
  cosp_nradsteps = 3
-&slfsimulator_nl
- slf_isotherms = .true.
 COSP_SPECS
-sed cesm_nudges.txt > user_nl_cam # copy CESM2 nudging nl_vars in
 
 fi
 # OPTIONAL: Nudge winds (pt. 2)
@@ -215,6 +217,7 @@ if [ $nudge_winds = true ] ; then #
 
 # Strings formatted to give correct startdate and resolution directories (assuming they exist)
 #  drydep_method = 'xactive_atm'
+
 cat <<TXT3 >> user_nl_cam
 &metdata_nl
  met_nudge_only_uvps = .true.
