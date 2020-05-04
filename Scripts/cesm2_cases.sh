@@ -49,7 +49,7 @@ nudge=('ERA_f19_g16' 'ERA_f19_tn14') # repository where data for nudging is stor
 nudge_winds=true
 remove_entrained_ice=false
 record_mar_input=false
-run_type=devel # fouryear, devel, paramtest
+run_type=fouryear # fouryear, devel, paramtest
 run_period=sat_comp # standard, sat_comp
 
 ## Build the case
@@ -60,8 +60,9 @@ ModelRoot=/cluster/home/jonahks/p/jonahks/models/${models[1]}/cime/scripts # sel
 # Where the case is setup, and user_nl files are stored
 CASEROOT=/cluster/home/jonahks/p/jonahks/cases
 
-# Where FORTRAN files contains microphysics modifications are stored
-ModSource=/cluster/home/jonahks/git_repos/micro_mg_mods/CESM_slfmods
+# Where FORTRAN files contains microphysics modifications are stored. 
+# Correct branch must be checked out!
+ModSource=/cluster/home/jonahks/git_repos/mpcSourceMods
 
 # Set indices to select from arrays here
 COMPSET=${compsets[1]}
@@ -191,7 +192,7 @@ fincl1 = 'BERGO', 'BERGSO', 'MNUCCTO', 'MNUCCRO', 'MNUCCCO', 'MNUCCDOhet', 'MNUC
 TXT2
 
 # Use COSP only for isotherm coords, requires modded cosp_simulator.F90 file as SourceMods
-if [ $run_type = fouryear ] ; then 
+# if [ $run_type = fouryear ] ; then 
 
 # cosp_amwg needed, I don't think so?
 #  cosp_amwg = .false.
@@ -201,15 +202,16 @@ if [ $run_type = fouryear ] ; then
 # Only use need COSP functions to save computation time (cosp_active). Add SLF isotherms (slf_isotherms)
 
 # The CESM2 nudging options should be taken from another file in order to be organized and efficient.
-cat <<COSP_SPECS >> user_nl_cam
-&cospsimulator_nl
- cosp_active = .true.
- cosp_amwg = .true.
- cosp_ncolumns = 10
- cosp_nradsteps = 3
-COSP_SPECS
+# cat <<COSP_SPECS >> user_nl_cam
+# &cospsimulator_nl
+#  cosp_active = .true.
+#  cosp_amwg = .true.
+#  cosp_ncolumns = 10
+#  cosp_nradsteps = 3
+# COSP_SPECS
 
-fi
+# fi
+
 # OPTIONAL: Nudge winds (pt. 2)
 # user_nl_cam additions related to nudging. Specify winds, set relax time, set first wind field file, path to all windfield files
 # Setting drydep_method resolves an error that arises when using the NF2000climo compset

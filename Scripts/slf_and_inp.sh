@@ -35,7 +35,7 @@ inp=${args[2]}          # inp multiplier
 
 models=("noresm-dev" "cesm" "noresm-dev-10072019")
 compsets=("NF2000climo" "N1850OCBDRDDMS" "NFAMIPNUDGEPTAEROCLB")
-resolutions=("f19_tn14" "f10_f10_mg37", 'f19_g16')
+resolutions=("f19_tn14" "f10_f10_mg37" 'f19_g16' "f19_f19_mg17")
 machines=('fram')
 projects=('nn9600k' 'nn9252k')
 start=('2000-01-01' '2009-03-01') # start date
@@ -48,7 +48,7 @@ nudge=('ERA_f19_g16' 'ERA_f19_tn14') # repository where data for nudging is stor
 nudge_winds=true
 remove_entrained_ice=false
 record_mar_input=false
-run_type=fouryear # fouryear, devel, paramtest
+run_type=paramtest # fouryear, devel, paramtest
 run_period=sat_comp # standard, sat_comp
 
 ## Build the case
@@ -181,10 +181,13 @@ fincl1 = 'BERGO', 'BERGSO', 'MNUCCTO', 'MNUCCRO', 'MNUCCCO', 'MNUCCDOhet', 'MNUC
          'BCNIDEP', 'BCNICNT', 'BCNIIMM', 'NUMICE10s', 'NUMIMM10sDST', 'NUMIMM10sBC',
          'MPDI2V', 'MPDI2W','QISEDTEN', 'NIMIX_HET', 'NIMIX_CNT', 'NIMIX_IMM', 'NIMIX_DEP',
          'MNUDEPO', 'NNUCCTO', 'NNUCCCO', 'NNUDEPO', 'NIHOMOO','HOMOO'
+
+&slfsimulator_nl
+ slf_isotherms = .true.
 TXT2
 
 # Use COSP only for isotherm coords, requires modded cosp_simulator.F90 file as SourceMods
-if [ $run_type = fouryear ] ; then 
+# if [ $run_type = fouryear ] ; then 
 
 # cosp_amwg needed, I don't think so?
 #  cosp_amwg = .false.
@@ -192,14 +195,17 @@ if [ $run_type = fouryear ] ; then
 #  cosp_ncolumns = 10
 #  cosp_nradsteps = 3
 # Only use need COSP functions to save computation time (cosp_active). Add SLF isotherms (slf_isotherms)
-cat <<COSP_SPECS >> user_nl_cam
-&cospsimulator_nl
- cosp_active = .true.
-&slfsimulator_nl
- slf_isotherms = .true.
-COSP_SPECS
+# cat <<COSP_SPECS >> user_nl_cam
+# &cospsimulator_nl
+#  cosp_active = .true.
+#  cosp_amwg = .false.
+#  cosp_ncolumns = 10
+#  cosp_nradsteps = 3
+# &slfsimulator_nl
+#  slf_isotherms = .true.
+# COSP_SPECS
 
-fi
+# fi
 # OPTIONAL: Nudge winds (pt. 2)
 # user_nl_cam additions related to nudging. Specify winds, set relax time, set first wind field file, path to all windfield files
 # Setting drydep_method resolves an error that arises when using the NF2000climo compset
