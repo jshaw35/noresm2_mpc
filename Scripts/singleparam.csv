@@ -89,3 +89,14 @@ fouryearprecheck_wbf_1_inp_1,1.0,1.0,1.0
 cam61satcomp_wbf_1_inp_1,1.0,1.0,1.0
 cam61satcomp_wbf_0.2_inp_0.3,1.0,0.2,0.3
 cam61satcomp_wbf_1_inp_0.05,1.0,1.0,0.05
+costcomp3steps_wbf_1_inp_1,1.0,1.0,1.0
+costcomp1steps_wbf_1_inp_1,1.0,1.0,1.0
+cam6conttest_wbf_1_inp_10,1.0,1.0,10.0
+cam6satcomp_wbf_1_inp_10,1.0,1.0,10.0
+cam61_arctic2_wbf_0.1_inp_1.0,1.0,0.1,1.0
+cam61_arctic2_wbf_0.2_inp_0.2,1.0,0.2,0.2
+cam6paramtest_wbf_1_inp_10,1.0,1.0,10.0
+cam61_arctic2satcomp_wbf_0.2_inp_0.2,1.0,0.2,0.2
+cam6paramtest_wbf_0.1_inp_10,1.0,0.1,10.0
+cam6paramtest_wbf_0.5_inp_10,1.0,0.5,10.0
+cam6satcomp_wbf_1_inp_1,0.0,1.0,1.0

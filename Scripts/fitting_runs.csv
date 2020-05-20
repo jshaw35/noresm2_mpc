@@ -1,0 +1,14 @@
+casename,run,wbf_mult,inp_mult
+cam6satcomp_wbf_1_inp_1,1.0,1.0,1.0
+cam6paramtest_wbf_2.0_inp_10,1.0,2.0,10.0
+cam6paramtest_wbf_1.0_inp_20,1.0,1.0,20.0
+conspiracytest1_wbf_1.0_inp_1.0,1.0,1.0,1.0
+cam6paramtest_wbf_1.5_inp_10,1.0,1.5,10.0
+conspiracytest2_wbf_1.0_inp_1.0,1.0,1.0,1.0
+cam6paramtest_wbf_1.4_inp_10,1.0,1.4,10.0
+cam61paramtest16_wbf_0.2_inp_0.1,1.0,0.2,0.1
+cam6paramtest16_wbf_1.4_inp_10,1.0,1.4,10.0
+cam61satcomp_wbf_0.2_inp_0.1,1.0,0.2,0.1
+cam6olimpiaout1_wbf_1_inp_1,1.0,1.0,1.0
+convdetramptest_wbf_1_inp_1,1.0,1.0,1.0
+convdetramp15_wbf_1_inp_1,1.0,1.0,1.0

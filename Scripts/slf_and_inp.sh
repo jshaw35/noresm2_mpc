@@ -34,7 +34,7 @@ inp=${args[2]}          # inp multiplier
 #####################
 
 models=("noresm-dev" "cesm" "noresm-dev-10072019")
-compsets=("NF2000climo" "N1850OCBDRDDMS" "NFAMIPNUDGEPTAEROCLB")
+compsets=("NF2000climo" "N1850OCBDRDDMS" "NFAMIPNUDGEPTAEROCLB" "N1850")
 resolutions=("f19_tn14" "f10_f10_mg37" 'f19_g16' "f19_f19_mg17")
 machines=('fram')
 projects=('nn9600k' 'nn9252k')
@@ -48,7 +48,9 @@ nudge=('ERA_f19_g16' 'ERA_f19_tn14') # repository where data for nudging is stor
 nudge_winds=true
 remove_entrained_ice=false
 record_mar_input=false
-run_type=paramtest # fouryear, devel, paramtest
+olimpia_output=false
+mod_convective_detrainment=true
+run_type=wat # fouryear, devel, paramtest
 run_period=sat_comp # standard, sat_comp
 
 ## Build the case
@@ -113,18 +115,28 @@ elif [ $run_type = paramtest ] ; then
     ./xmlchange STOP_OPTION='nmonth',STOP_N='15' --file env_run.xml
     ./xmlchange JOB_WALLCLOCK_TIME=11:59:59 --file env_batch.xml --subgroup case.run
     ./xmlchange NTASKS=-4,NTASKS_ESP=1 --file env_mach_pes.xml # arbitrary
-else
-    ./xmlchange STOP_OPTION='nmonth',STOP_N='15' --file env_run.xml
+elif [ $run_type = coupled ] ; then
     ./xmlchange JOB_WALLCLOCK_TIME=11:59:59 --file env_batch.xml --subgroup case.run
-    ./xmlchange NTASKS=-4,NTASKS_ESP=1 --file env_mach_pes.xml # arbitrary
+else
+    ./xmlchange JOB_WALLCLOCK_TIME=11:59:59 --file env_batch.xml --subgroup case.run
+    ./xmlchange NTASKS=-4,NTASKS_ESP=1 --file env_mach_pes.xml
+    ./xmlchange --append CAM_CONFIG_OPTS='-cosp' --file env_build.xml
+    ./xmlchange STOP_OPTION='nmonth',STOP_N='15' --file env_run.xml
 fi
 
-./xmlchange RUN_STARTDATE=$startdate --file env_run.xml
+if [ ! $COMPSET = "N1850"] ; then # don't need to do this if running PI?
+    ./xmlchange RUN_STARTDATE=$startdate --file env_run.xml
+fi
 
 #./xmlchange --file=env_run.xml RESUBMIT=3
 # ./xmlchange --file=env_run.xml REST_OPTION=nyears
 #./xmlchange --file=env_run.xml REST_N=5
 
+# OPTIONAL: Modify convective detrainment ramp (could add options here later if useful)
+if [ $mod_convective_detrainment = true ] ; then
+    echo "Adding SourceMod to change ice detrainment ramp"
+    cp ${ModSource}/macrop_driver.F90 /${CASEROOT}/${CASENAME}/SourceMods/src.cam
+fi
 
 # OPTIONAL: Remove entrainment of ice above -35C.
 if [ $remove_entrained_ice = true ] ; then
@@ -172,7 +184,7 @@ ponyfyer 'inp_tag = 1.' "inp_tag = ${inp}" ${inp_path} # aerosol conc. modifier
 # Modify user_nl files appropriately here to choose output
 # list variables to add to first history file here
 cat <<TXT2 >> user_nl_cam
-fincl1 = 'BERGO', 'BERGSO', 'MNUCCTO', 'MNUCCRO', 'MNUCCCO', 'MNUCCDOhet', 'MNUCCDO'
+fincl1 = 'BERGO', 'BERGSO', 'MNUCCTO', 'MNUCCRO', 'MNUCCCO', 'MNUCCDOhet', 'MNUCCDO',
          'DSTFREZIMM', 'DSTFREZCNT', 'DSTFREZDEP', 'BCFREZIMM', 'BCFREZCNT', 'BCFREZDEP',
          'NUMICE10s', 'NUMICE10sDST', 'NUMICE10sBC',
          'dc_num', 'dst1_num', 'dst3_num', 'bc_c1_num', 'dst_c1_num', 'dst_c3_num',
@@ -241,6 +253,18 @@ MAR_CICE
 
 fi
 # missing sea ice concentration (likely related to a different module)
+
+# Output additional history files for Olimpia's comparison. This requires COSP on.
+if [ $olimpia_output = true ] ; then
+
+cat <<CLD_OLI >> user_nl_cam
+fincl2 = 'TAUTMODIS:I','PCTMODIS:I','CT_SLFXCLD_ISOTM:I','REFFCLWMODIS:I',
+         'REFFCLIMODIS:I','FISCCP1_COSP:I','CLTMODIS:I','CLWMODIS:I','CLIMODIS:I',
+         'CT_CLD_ISOTM:I','CT_TEMP:I'
+nhtfrq(2) = -24
+CLD_OLI
+
+fi
 
 exit 1
 
